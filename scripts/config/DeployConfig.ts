@@ -1,7 +1,9 @@
+import { BigNumber } from "ethers"
+
 export interface IDeployConfig {
 	outputFile: string
 	adminWallet: string
 	vestaTokenAddress: string
-	lockedVstaAddress: string
-	merkleRoot: string
+	totalSupply: number
+	whitelist: { account: string; amount: BigNumber }[]
 }

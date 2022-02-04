@@ -10,8 +10,12 @@ const config: IDeployConfig = {
 	totalSupply: 787787,
 	whitelist: [
 		{
-			account: "0x7246a274656e797fab4b02eb1e0581d46f0358e2",
+			account: "0xdd923438e759af8e9326338e8c6329464149b8f4",
 			amount: BigNumber.from("3873000000"),
+		},
+		{
+			account: "0x2dFEa295f4d38BDf9fCCA4b35fdBf4B01E7dE701",
+			amount: BigNumber.from("6322000000"),
 		},
 		{
 			account: "0x87209dc4B76b14B67BC5E5e5c0737E7d002a219c",

@@ -12,4 +12,27 @@ contract BaseTest is DSTest {
 	bytes internal constant NOT_OWNER = "Ownable: caller is not the owner";
 	bytes internal constant ERC20_INVALID_BALANCE =
 		"ERC20: transfer amount exceeds balance";
+
+	modifier prankAs(address caller) {
+		vm.startPrank(caller);
+		_;
+		vm.stopPrank();
+	}
+
+	function assertAlmostEq(
+		uint256 a,
+		uint256 b,
+		uint256 maxForgivness
+	) internal {
+		uint256 diff = b > a ? b - a : a - b;
+
+		if (maxForgivness < diff) {
+			emit log("Error: a == b not satisfied [with forgivness]");
+			emit log_named_uint("  A", a);
+			emit log_named_uint("  B", b);
+			emit log_named_uint("  Max forgivness", maxForgivness);
+			emit log_named_uint("    Actual Difference", diff);
+			fail();
+		}
+	}
 }

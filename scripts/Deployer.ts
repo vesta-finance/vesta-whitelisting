@@ -52,7 +52,7 @@ export class Deployer {
 		)
 
 		const Whitelisting = await ethers.getContractFactory("Whitelisting")
-		const VestingVsta = await ethers.getContractFactory("WhitelistVestingVesta")
+		const VestingVsta = await ethers.getContractFactory("VestingVesta")
 		const whitelisting = await this.helper.deployContract(
 			Whitelisting,
 			"Whitelisting"
@@ -60,7 +60,7 @@ export class Deployer {
 
 		const vesting = await this.helper.deployContract(
 			VestingVsta,
-			"WhitelistVestingVesta"
+			"VestingVesta"
 		)
 
 		return [vsta, whitelisting, vesting]
@@ -94,7 +94,7 @@ export class Deployer {
 
 	async initVesting(vesting: Contract, whitelisting: Contract) {
 		this.config.vestaTokenAddress,
-			await vesting.setAddresses(
+			await vesting.initialize(
 				this.config.vestaTokenAddress,
 				whitelisting.address
 			)

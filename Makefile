@@ -8,7 +8,8 @@ update:; forge update
 # Build & test
 build  :; forge clean && forge build --optimize --optimize-runs 1000000
 test   :; forge clean && forge test --optimize --optimize-runs 1000000 -v 
-trace  :; forge clean && forge test --optimize --optimize-runs 1000000 -vvv
+test-debug   :; forge clean && forge test --optimize --optimize-runs 1000000 -vv
+test-trace  :; forge clean && forge test --optimize --optimize-runs 1000000 -vvv
 clean  :; forge clean
 snapshot :; forge clean && forge snapshot --optimize --optimize-runs 1000000
 

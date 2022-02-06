@@ -19,7 +19,7 @@ contract WhitelistingTest is BaseTest {
 	Accounts private accounts = new Accounts(vm);
 
 	ERC20Mock private mockERC20 = new ERC20Mock();
-	IVestingVsta private lockedVstaMock = new LockedVstaMock(mockERC20);
+	LockedVstaMock private lockedVstaMock = new LockedVstaMock(mockERC20);
 	Whitelisting private underTest;
 
 	event Claimed(address account, uint256 amountVsta);
@@ -47,7 +47,7 @@ contract WhitelistingTest is BaseTest {
 		mockERC20.approve(address(underTest), TOTAL_SUPPLY);
 		underTest.setAddresses(
 			mockERC20,
-			lockedVstaMock,
+			address(lockedVstaMock),
 			TOKEN_PRICE,
 			TOTAL_SUPPLY,
 			root
@@ -65,7 +65,7 @@ contract WhitelistingTest is BaseTest {
 		vm.expectRevert(NOT_OWNER);
 		underTest.setAddresses(
 			mockERC20,
-			lockedVstaMock,
+			address(lockedVstaMock),
 			TOKEN_PRICE,
 			TOTAL_SUPPLY,
 			root
@@ -77,7 +77,7 @@ contract WhitelistingTest is BaseTest {
 		vm.expectRevert(NOT_OWNER);
 		underTest.setAddresses(
 			mockERC20,
-			lockedVstaMock,
+			address(lockedVstaMock),
 			TOKEN_PRICE,
 			TOTAL_SUPPLY,
 			root
@@ -99,7 +99,7 @@ contract WhitelistingTest is BaseTest {
 		vm.expectRevert(INVALID_ERC20); // Erc20 total supply is 0 -> fails
 		underTest.setAddresses(
 			mockERC20,
-			lockedVstaMock,
+			address(lockedVstaMock),
 			TOKEN_PRICE,
 			TOTAL_SUPPLY,
 			root
@@ -111,7 +111,7 @@ contract WhitelistingTest is BaseTest {
 		vm.expectRevert(ERC20_INVALID_BALANCE);
 		underTest.setAddresses(
 			mockERC20,
-			lockedVstaMock,
+			address(lockedVstaMock),
 			TOKEN_PRICE,
 			TOTAL_SUPPLY,
 			root
@@ -122,19 +122,25 @@ contract WhitelistingTest is BaseTest {
 		vm.expectRevert(INVALID_LOCKED_VSTA);
 		underTest.setAddresses(
 			mockERC20,
-			IVestingVsta(address(0)),
+			address(0),
 			TOKEN_PRICE,
 			TOTAL_SUPPLY,
 			root
 		);
 
 		vm.expectRevert(INVALID_TOKEN_PRICE);
-		underTest.setAddresses(mockERC20, lockedVstaMock, 0, TOTAL_SUPPLY, root);
+		underTest.setAddresses(
+			mockERC20,
+			address(lockedVstaMock),
+			0,
+			TOTAL_SUPPLY,
+			root
+		);
 
 		vm.expectRevert(INVALID_TOTAL_SUPPLY);
 		underTest.setAddresses(
 			mockERC20,
-			lockedVstaMock,
+			address(lockedVstaMock),
 			TOKEN_PRICE,
 			0 ether,
 			root
@@ -143,7 +149,7 @@ contract WhitelistingTest is BaseTest {
 		vm.expectRevert(INVALID_ROOT);
 		underTest.setAddresses(
 			mockERC20,
-			lockedVstaMock,
+			address(lockedVstaMock),
 			TOKEN_PRICE,
 			TOTAL_SUPPLY,
 			bytes32(0)
@@ -184,6 +190,7 @@ contract WhitelistingTest is BaseTest {
 			abi.encodeWithSelector(
 				lockedVstaMock.addEntityVesting.selector,
 				caller,
+				0,
 				usdcToToken(WALLET_1_USDC) / 2
 			)
 		);
@@ -191,6 +198,18 @@ contract WhitelistingTest is BaseTest {
 		underTest.claim(WALLET_1_USDC, PROOF_01);
 
 		assertEq(mockERC20.balanceOf(caller), usdcToToken(WALLET_1_USDC) / 2);
+		vm.stopPrank();
+	}
+
+	function test_claim_asWhitelistedUser_tryToClaimTwice_ThenReverts() public {
+		address caller = accounts.PUBLIC_KEYS(1);
+		vm.startPrank(caller);
+
+		underTest.claim(WALLET_1_USDC, PROOF_01);
+
+		vm.expectRevert("Already claimed!");
+		underTest.claim(WALLET_1_USDC, PROOF_01);
+
 		vm.stopPrank();
 	}
 
@@ -288,17 +307,18 @@ contract WhitelistingTest is BaseTest {
 	];
 }
 
-contract LockedVstaMock is IVestingVsta {
+contract LockedVstaMock {
 	IERC20 token;
 
 	constructor(IERC20 _token) {
 		token = _token;
 	}
 
-	function addEntityVesting(address _entity, uint256 _totalSupply)
-		external
-		override
-	{
+	function addEntityVesting(
+		address _entity,
+		uint256 _vestingType,
+		uint256 _totalSupply
+	) external {
 		token.transferFrom(msg.sender, address(this), _totalSupply);
 	}
 }

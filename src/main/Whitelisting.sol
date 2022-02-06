@@ -36,7 +36,7 @@ contract Whitelisting is Ownable {
 
 	function setAddresses(
 		IERC20 _vestaToken,
-		IVestingVsta _vestingVesta,
+		address _vestingVesta,
 		uint256 _tokenPrice,
 		uint256 _totalSupply,
 		bytes32 _merkleRoot
@@ -56,7 +56,7 @@ contract Whitelisting is Ownable {
 		merkleRoot = _merkleRoot;
 
 		vesta = _vestaToken;
-		vestingVesta = _vestingVesta;
+		vestingVesta = IVestingVsta(_vestingVesta);
 
 		vesta.safeApprove(address(_vestingVesta), type(uint256).max);
 		vesta.safeTransferFrom(msg.sender, address(this), _totalSupply);
@@ -73,6 +73,7 @@ contract Whitelisting is Ownable {
 			"MerkleDistributor: Invalid proof."
 		);
 
+		hasClaimed[msg.sender] = true;
 		_usdcAmount = covertToEther(_usdcAmount);
 
 		uint256 vestaTokensTotal = _usdcAmount.div(tokenPrice).mul(1 ether);
@@ -80,7 +81,7 @@ contract Whitelisting is Ownable {
 
 		vesta.safeTransfer(msg.sender, fiftyPercentToken);
 
-		vestingVesta.addEntityVesting(msg.sender, fiftyPercentToken);
+		vestingVesta.addEntityVesting(msg.sender, 0, fiftyPercentToken);
 		emit Claimed(msg.sender, fiftyPercentToken);
 	}
 

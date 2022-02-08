@@ -15,4 +15,4 @@ artifacts
 # Added by cargo
 
 /target
-typechain-types
+typechain-types/

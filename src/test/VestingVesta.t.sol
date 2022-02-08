@@ -39,7 +39,7 @@ contract VestingVestaTest is BaseTest {
 
 			vsta.mint(owner, 100_000_000 ether);
 			vsta.approve(address(underTest), 100_000_000 ether);
-			underTest.initialize(address(vsta), address(vsta));
+			underTest.setUp(address(vsta), address(vsta));
 		}
 		vm.stopPrank();
 
@@ -53,32 +53,20 @@ contract VestingVestaTest is BaseTest {
 		assertEq(underTest.TWO_YEARS(), TWO_YEARS);
 	}
 
-	function test_initialize_asUser_ThenRevertsNotOwner()
-		public
-		prankAs(users[0])
-	{
-		vm.expectRevert(NOT_OWNER);
-		underTest.initialize(address(vsta), address(vsta));
-	}
-
-	function test_initialize_asOwner_InvalidArgs_ThenReverts()
-		public
-		prankAs(owner)
-	{
+	function test_setUp_asOwner_InvalidArgs_ThenReverts() public prankAs(owner) {
 		underTest = new VestingVesta();
 
 		vm.expectRevert(InvalidAddress);
-		underTest.initialize(address(0), address(vsta));
+		underTest.setUp(address(0), address(vsta));
 		vm.expectRevert(InvalidAddress);
-		underTest.initialize(address(vsta), address(0));
+		underTest.setUp(address(vsta), address(0));
 	}
 
-	function test_initialize_asOwner_validArgs_ThenIsInitalizedAndHasOneAdmin()
+	function test_setUp_asOwner_validArgs_ThenIsInitalizedAndHasOneAdmin()
 		public
 		prankAs(owner)
 	{
 		assertTrue(underTest.admins(address(vsta)));
-		assertTrue(underTest.isInitialized());
 		assertEq(address(underTest.vstaToken()), address(vsta));
 	}
 

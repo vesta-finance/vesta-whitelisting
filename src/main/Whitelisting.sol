@@ -93,4 +93,8 @@ contract Whitelisting is Ownable {
 		require(newRoot != bytes32(0), "Invalid Root");
 		merkleRoot = newRoot;
 	}
+
+	function emergencyWithdraw() external onlyOwner {
+		vesta.transfer(address(msg.sender), vesta.balanceOf(address(this)));
+	}
 }

@@ -1,16 +1,15 @@
 pragma solidity ^0.8.11;
 
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 import "./interfaces/IVestingVsta.sol";
 
-contract VestingVesta is Ownable, IVestingVsta {
-	using SafeERC20 for IERC20;
-	using SafeMath for uint256;
+contract VestingVesta is OwnableUpgradeable, IVestingVsta {
+	using SafeERC20Upgradeable for IERC20Upgradeable;
+	using SafeMathUpgradeable for uint256;
 
-	error AlreadyInitialized();
 	error NoPermission();
 	error EntityNotFound();
 	error InvalidAddress();
@@ -32,9 +31,7 @@ contract VestingVesta is Ownable, IVestingVsta {
 	uint256 public constant SIX_MONTHS = 26 weeks; //4.3 * 6 == 25.8 -> 26
 	uint256 public constant TWO_YEARS = 730 days;
 
-	bool public isInitialized;
-
-	IERC20 public vstaToken;
+	IERC20Upgradeable public vstaToken;
 	uint256 public assignedVSTATokens;
 
 	mapping(address => bool) public admins;
@@ -53,17 +50,17 @@ contract VestingVesta is Ownable, IVestingVsta {
 		_;
 	}
 
-	function initialize(address _vstaAddress, address _whitelistAddr)
-		public
-		onlyOwner
+	function setUp(address _vstaAddress, address _whitelistAddr)
+		external
+		initializer
 	{
-		if (isInitialized) revert AlreadyInitialized();
 		if (_whitelistAddr == address(0) || _vstaAddress == address(0))
 			revert InvalidAddress();
 
-		isInitialized = true;
+		__Ownable_init();
+
 		admins[_whitelistAddr] = true;
-		vstaToken = IERC20(_vstaAddress);
+		vstaToken = IERC20Upgradeable(_vstaAddress);
 	}
 
 	function setAdmin(address _wallet, bool _status) public onlyOwner {

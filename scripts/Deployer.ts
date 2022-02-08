@@ -1,6 +1,6 @@
 import { IDeployConfig } from "./config/DeployConfig"
 import { DeploymentHelper } from "./utils/DeploymentHelper"
-import { ethers } from "hardhat"
+import { ethers, upgrades } from "hardhat"
 import BalanceTree from "./misc/balance-tree"
 import { BigNumber, Contract, Signer } from "ethers"
 import vstaAbi from "./abis/VSTAToken.json"
@@ -47,6 +47,7 @@ export class Deployer {
 		}
 
 		await whitelisting.transferOwnership(this.config.adminWallet)
+		await vesting.transferOwnership(this.config.adminWallet)
 	}
 
 	async getContracts() {
@@ -63,7 +64,7 @@ export class Deployer {
 			"Whitelisting"
 		)
 
-		const vesting = await this.helper.deployContract(
+		const vesting = await this.helper.deployUpgradeableContract(
 			VestingVsta,
 			"VestingVesta"
 		)
@@ -98,10 +99,7 @@ export class Deployer {
 	}
 
 	async initVesting(vesting: Contract, whitelisting: Contract) {
-		this.config.vestaTokenAddress,
-			await vesting.initialize(
-				this.config.vestaTokenAddress,
-				whitelisting.address
-			)
+		await vesting.setUp(this.config.vestaTokenAddress, whitelisting.address)
+		await upgrades.admin.transferProxyAdminOwnership(this.config.adminWallet)
 	}
 }

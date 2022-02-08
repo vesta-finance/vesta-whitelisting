@@ -3,10 +3,10 @@ import { BigNumber, utils } from "ethers"
 
 export default class BalanceTree {
 	private readonly tree: MerkleTree
-	constructor(balances: { account: string; amount: BigNumber }[]) {
+	constructor(whitelists: Record<string, string>) {
 		this.tree = new MerkleTree(
-			balances.map(({ account, amount }) => {
-				return BalanceTree.toNode(account, amount)
+			Object.entries(whitelists).map(([address, amount]) => {
+				return BalanceTree.toNode(address, BigNumber.from(amount))
 			})
 		)
 	}

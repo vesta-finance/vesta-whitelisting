@@ -4,6 +4,7 @@ import { ethers } from "hardhat"
 import BalanceTree from "./misc/balance-tree"
 import { BigNumber, Contract, Signer } from "ethers"
 import vstaAbi from "./abis/VSTAToken.json"
+import { assert } from "chai"
 
 export class Deployer {
 	config: IDeployConfig
@@ -11,6 +12,7 @@ export class Deployer {
 	deployerWallet?: Signer
 	tokenPrice: BigNumber = BigNumber.from("375000000000000000") //0.375
 	e6_to_e18 = BigNumber.from(10).pow(12)
+	whitelist: Record<string, string> = {}
 
 	constructor(config: IDeployConfig) {
 		this.config = config
@@ -19,6 +21,9 @@ export class Deployer {
 
 	async run() {
 		this.deployerWallet = (await ethers.getSigners())[0]
+		this.whitelist = require(this.config.whitelistFilePath)
+
+		assert(Object.keys(this.whitelist).length != 0, "Whitelist is empty")
 
 		const [vsta, whitelisting, vesting] = await this.getContracts()
 
@@ -67,12 +72,12 @@ export class Deployer {
 	}
 
 	async initWhitelisting(whitelisting: Contract, vesting: Contract) {
-		const bt = new BalanceTree(this.config.whitelist)
+		const bt = new BalanceTree(this.whitelist)
 		let totalAmountUSDC = BigNumber.from("0")
 
-		this.config.whitelist.forEach(wl => {
-			totalAmountUSDC = totalAmountUSDC.add(wl.amount)
-		})
+		for (let key in this.whitelist) {
+			totalAmountUSDC = totalAmountUSDC.add(this.whitelist[key])
+		}
 
 		//TO ETHER
 		totalAmountUSDC = totalAmountUSDC.mul(this.e6_to_e18)

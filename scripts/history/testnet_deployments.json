@@ -4,5 +4,8 @@
   },
   "WhitelistVestingVesta": {
     "address": "0xfED8913ffA4c7Ed985e35999e1b8CE9C5060182e"
+  },
+  "VestingVesta": {
+    "address": "0xE45814D0c0C4aa13412405E5Eb1c2543863D867c"
   }
 }

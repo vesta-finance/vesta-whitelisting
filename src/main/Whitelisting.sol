@@ -23,6 +23,7 @@ contract Whitelisting is Ownable {
 	IERC20 public vesta;
 	IVestingVsta public vestingVesta;
 	bytes32 public merkleRoot;
+	bool public isOpen;
 
 	uint256 tokenPrice;
 
@@ -42,10 +43,7 @@ contract Whitelisting is Ownable {
 		bytes32 _merkleRoot
 	) external onlyOwner {
 		require(_vestaToken.totalSupply() > 0, "Invalid erc20");
-		require(
-			address(_vestingVesta) != address(0),
-			"Invalid LockedVsta Contract"
-		);
+		require(_vestingVesta != address(0), "Invalid LockedVsta Contract");
 		require(_tokenPrice > 0, "Invalid token price");
 		require(_totalSupply > 0, "Invalid total supply");
 		require(_merkleRoot != bytes32(0), "Invalid MarkleRoot");
@@ -58,14 +56,18 @@ contract Whitelisting is Ownable {
 		vesta = _vestaToken;
 		vestingVesta = IVestingVsta(_vestingVesta);
 
-		vesta.safeApprove(address(_vestingVesta), type(uint256).max);
+		vesta.safeApprove(_vestingVesta, type(uint256).max);
 		vesta.safeTransferFrom(msg.sender, address(this), _totalSupply);
+
+		assert(vesta.allowance(address(this), _vestingVesta) != 0);
 	}
 
 	function claim(uint256 _usdcAmount, bytes32[] calldata _merkleProof)
 		external
 		onlyNotClaimed
 	{
+		require(isOpen, "Claiming isn't open yet");
+
 		bytes32 node = keccak256(abi.encodePacked(msg.sender, _usdcAmount));
 
 		require(
@@ -85,8 +87,12 @@ contract Whitelisting is Ownable {
 		emit Claimed(msg.sender, fiftyPercentToken);
 	}
 
-	function covertToEther(uint256 _usdcAmount) public pure returns (uint256) {
+	function covertToEther(uint256 _usdcAmount) private pure returns (uint256) {
 		return _usdcAmount.mul(10**(TARGET_UNIT - DB_UNIT));
+	}
+
+	function setOpenState(bool _isOpen) external onlyOwner {
+		isOpen = _isOpen;
 	}
 
 	function emergencyChangeRoot(bytes32 newRoot) external onlyOwner {

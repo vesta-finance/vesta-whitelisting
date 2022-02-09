@@ -36,18 +36,11 @@ export class Deployer {
 			await vsta.approve(whitelisting.address, ethers.constants.MaxUint256)
 		}
 
-		if (!(await whitelisting.isInitialized)) {
-			await this.initWhitelisting(whitelisting, vesting)
-			console.log("Whitelisting Initalized")
-		}
+		await this.initWhitelisting(whitelisting, vesting)
+		console.log("Whitelisting Initalized")
 
-		if (!(await vesting.isInitialized)) {
-			await this.initVesting(vesting, whitelisting)
-			console.log("Vesting Initalized")
-		}
-
-		await whitelisting.transferOwnership(this.config.adminWallet)
-		await vesting.transferOwnership(this.config.adminWallet)
+		await this.initVesting(vesting, whitelisting)
+		console.log("Vesting Initalized")
 	}
 
 	async getContracts() {
@@ -96,10 +89,12 @@ export class Deployer {
 			totalAmountToken.toString(),
 			bt.getHexRoot()
 		)
+
+		await whitelisting.transferOwnership(this.config.adminWallet)
 	}
 
 	async initVesting(vesting: Contract, whitelisting: Contract) {
 		await vesting.setUp(this.config.vestaTokenAddress, whitelisting.address)
-		await upgrades.admin.transferProxyAdminOwnership(this.config.adminWallet)
+		await vesting.transferOwnership(this.config.adminWallet)
 	}
 }

@@ -15,6 +15,7 @@ contract WhitelistingTest is BaseTest {
 	bytes private constant INVALID_TOTAL_SUPPLY = "Invalid total supply";
 	bytes private constant INVALID_ROOT = "Invalid MarkleRoot";
 	bytes private constant INVALID_PROOF = "MerkleDistributor: Invalid proof.";
+	bytes private constant CLAIMING_NOT_OPEN = "Claiming isn't open yet";
 
 	Accounts private accounts = new Accounts(vm);
 
@@ -42,6 +43,7 @@ contract WhitelistingTest is BaseTest {
 		owner = accounts.PUBLIC_KEYS(0);
 		vm.startPrank(owner);
 		underTest = new Whitelisting();
+		underTest.setOpenState(true);
 
 		mockERC20.mint(owner, TOTAL_SUPPLY);
 		mockERC20.approve(address(underTest), TOTAL_SUPPLY);
@@ -57,7 +59,7 @@ contract WhitelistingTest is BaseTest {
 	}
 
 	function usdcToToken(uint256 _usdcAmount) private view returns (uint256) {
-		return (underTest.covertToEther(_usdcAmount) / TOKEN_PRICE) * 1 ether;
+		return ((_usdcAmount * (10**(18 - 6))) / TOKEN_PRICE) * 1 ether;
 	}
 
 	function test_whenSetAddresses_asUser_ThenReverts() public {
@@ -167,16 +169,30 @@ contract WhitelistingTest is BaseTest {
 		assertEq(mockERC20.balanceOf(caller), 0);
 	}
 
-	function test_claim_asWhitelistedUser_WithValidProof_NoRoot_ThenReverts()
+	function test_claim_asWhitelistedUser_WithValidProof_claimIsClose_ThenReverts()
 		public
 	{
 		address caller = accounts.PUBLIC_KEYS(1);
 		vm.prank(caller);
 		underTest = new Whitelisting();
 
+		vm.expectRevert(CLAIMING_NOT_OPEN);
+		underTest.claim(WALLET_1_USDC, PROOF_01);
+		assertEq(mockERC20.balanceOf(caller), 0);
+	}
+
+	function test_claim_asWhitelistedUser_WithValidProofAndClaimingOpen_NoRoot_ThenReverts()
+		public
+	{
+		address caller = accounts.PUBLIC_KEYS(1);
+		vm.startPrank(caller);
+		underTest = new Whitelisting();
+		underTest.setOpenState(true);
+
 		vm.expectRevert(INVALID_PROOF);
 		underTest.claim(WALLET_1_USDC, PROOF_01);
 		assertEq(mockERC20.balanceOf(caller), 0);
+		vm.stopPrank();
 	}
 
 	function test_claim_asWhitelistedUser_WithValidProof_ThenSendsAndLocksTokens()

@@ -6,7 +6,6 @@ const config: IDeployConfig = {
 	outputFile: "./testnet_deployments.json",
 	adminWallet: "0x87209dc4B76b14B67BC5E5e5c0737E7d002a219c",
 	vestaTokenAddress: "",
-	totalSupply: 787787,
 	whitelist: [],
 }
 

@@ -1,0 +1,9 @@
+{
+  "Whitelisting": {
+    "address": "0x8691a7833E2644Ce86c1516437F698aDd055d812"
+  },
+  "VestingVesta": {
+    "address": "0xefD767F55534b09617150434d9e35BFf4b1C96B0",
+    "proxyAdmin": "0xcFc8799d61f0e9cb6D71B15941c459809280c24e"
+  }
+}

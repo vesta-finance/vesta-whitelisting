@@ -15,6 +15,7 @@ contract VestingVesta is OwnableUpgradeable, IVestingVsta {
 	error InvalidAddress();
 	error DuplicatedVestingRule();
 	error ClaimingLockHigherThanVestingLock();
+	error VestingTimestampLowerThanBlockTimestamp();
 	error SupplyCannotBeZero();
 	error NewSupplyGoesToZero();
 	error NewSupplyHigherOnReduceMethod();
@@ -71,18 +72,25 @@ contract VestingVesta is OwnableUpgradeable, IVestingVsta {
 		address _entity,
 		uint256 _vestingType,
 		uint256 _totalSupply,
-		uint256 _lockClaiming,
-		uint256 _vestingDuration
+		uint256 _lockClaimingTimestamp,
+		uint256 _vestingDurationTimestamp
 	) external override isAdmin {
-		if (_lockClaiming > _vestingDuration)
+		if (
+			_lockClaimingTimestamp <= block.timestamp ||
+			_vestingDurationTimestamp <= block.timestamp
+		) {
+			revert VestingTimestampLowerThanBlockTimestamp();
+		}
+
+		if (_lockClaimingTimestamp > _vestingDurationTimestamp)
 			revert ClaimingLockHigherThanVestingLock();
 
 		_addEntityVesting(
 			_entity,
 			_vestingType,
 			_totalSupply,
-			_lockClaiming,
-			_vestingDuration
+			_lockClaimingTimestamp,
+			_vestingDurationTimestamp
 		);
 	}
 
@@ -95,8 +103,8 @@ contract VestingVesta is OwnableUpgradeable, IVestingVsta {
 			_entity,
 			_vestingType,
 			_totalSupply,
-			SIX_MONTHS,
-			TWO_YEARS
+			block.timestamp.add(SIX_MONTHS),
+			block.timestamp.add(TWO_YEARS)
 		);
 	}
 
@@ -104,8 +112,8 @@ contract VestingVesta is OwnableUpgradeable, IVestingVsta {
 		address _entity,
 		uint256 _vestingType,
 		uint256 _totalSupply,
-		uint256 _claimingLock,
-		uint256 _vestingDuration
+		uint256 _claimingLockTimestamp,
+		uint256 _vestingDurationTimestamp
 	) internal {
 		if (address(0) == _entity) revert InvalidAddress();
 		if (isEntityExits(_entity, _vestingType)) revert DuplicatedVestingRule();
@@ -116,8 +124,8 @@ contract VestingVesta is OwnableUpgradeable, IVestingVsta {
 		entitiesVesting[_entity][_vestingType] = Rule(
 			block.timestamp,
 			_totalSupply,
-			block.timestamp.add(_claimingLock),
-			block.timestamp.add(_vestingDuration),
+			_claimingLockTimestamp,
+			_vestingDurationTimestamp,
 			0
 		);
 

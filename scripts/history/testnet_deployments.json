@@ -1,9 +1,12 @@
 {
-	"Whitelisting": {
-		"address": "0xd36Ef600c12a3d226A6AEBCF6585F62beb80543A"
-	},
-	"VestingVesta": {
-		"address": "0xf8a6c6f4c232154510B4064361418B78D3BEB70D",
-		"proxyAdmin": "0xee26CE4eA51Be22f7DEc300d1Bfe7eEea2d13AaD"
-	}
+  "Whitelisting": {
+    "address": "0xd36Ef600c12a3d226A6AEBCF6585F62beb80543A"
+  },
+  "VestingVesta": {
+    "address": "0xf8a6c6f4c232154510B4064361418B78D3BEB70D",
+    "proxyAdmin": "0xee26CE4eA51Be22f7DEc300d1Bfe7eEea2d13AaD"
+  },
+  "VestingVesta-V2": {
+    "address": "0xC08DC8fE5D79aa61ED00acCB771A81c9Ec766F4A"
+  }
 }

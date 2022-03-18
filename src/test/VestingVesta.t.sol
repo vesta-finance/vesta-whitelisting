@@ -19,6 +19,8 @@ contract VestingVestaTest is BaseTest {
 	bytes private constant NewSupplyGoesToZero = hex"fefb85a0";
 	bytes private constant NewSupplyHigherOnReduceMethod = hex"e4784a90";
 
+	bytes private constant TIMESTAMP_LOWER_THAN_BLOCKTIME = hex"f61e035c";
+
 	ERC20Mock private vsta = new ERC20Mock();
 	VestingVesta private underTest;
 
@@ -96,7 +98,13 @@ contract VestingVestaTest is BaseTest {
 		prankAs(users[0])
 	{
 		vm.expectRevert(NoPermission);
-		underTest.addEntityVestingWithConfig(msg.sender, 0, 100 ether, 10, 100);
+		underTest.addEntityVestingWithConfig(
+			msg.sender,
+			0,
+			100 ether,
+			block.timestamp + 10,
+			block.timestamp + 100
+		);
 	}
 
 	function test_addEntityVestingWithConfig_asOwner_ClaimingLockHigherThanVesting_ThenReverts()
@@ -104,7 +112,13 @@ contract VestingVestaTest is BaseTest {
 		prankAs(owner)
 	{
 		vm.expectRevert(ClaimingLockHigherThanVestingLock);
-		underTest.addEntityVestingWithConfig(msg.sender, 0, 100 ether, 1000, 100);
+		underTest.addEntityVestingWithConfig(
+			msg.sender,
+			0,
+			100 ether,
+			block.timestamp + 1000,
+			block.timestamp + 100
+		);
 	}
 
 	function test_addEntityVesting_asOwner_InvalidAddresses_ThenRevertsInvalidAddress()
@@ -129,7 +143,13 @@ contract VestingVestaTest is BaseTest {
 	{
 		uint256 currentBalance = vsta.balanceOf(owner);
 
-		underTest.addEntityVestingWithConfig(msg.sender, 0, 100 ether, 10, 100);
+		underTest.addEntityVestingWithConfig(
+			msg.sender,
+			0,
+			100 ether,
+			block.timestamp + 10,
+			block.timestamp + 100
+		);
 		(
 			uint256 createdDate,
 			uint256 totalSupply,
@@ -148,14 +168,40 @@ contract VestingVestaTest is BaseTest {
 		assertEq(vsta.balanceOf(address(underTest)), 100 ether);
 	}
 
+	function test_addEntityVestingWithConfig_asOwner_AddTimestampUnderCurrentOne_ThenReverts()
+		public
+		prankAs(owner)
+	{
+		vm.expectRevert(TIMESTAMP_LOWER_THAN_BLOCKTIME);
+		underTest.addEntityVestingWithConfig(
+			msg.sender,
+			0,
+			100 ether,
+			block.timestamp - 100,
+			block.timestamp - 10
+		);
+	}
+
 	function test_addEntityVestingWithConfig_asOwner_AddTwiceNewEntityWithSameType_ThenRevertsDuplicated()
 		public
 		prankAs(owner)
 	{
-		underTest.addEntityVestingWithConfig(msg.sender, 0, 100 ether, 10, 100);
+		underTest.addEntityVestingWithConfig(
+			msg.sender,
+			0,
+			100 ether,
+			block.timestamp + 10,
+			block.timestamp + 100
+		);
 
 		vm.expectRevert(DuplicatedVestingRule);
-		underTest.addEntityVestingWithConfig(msg.sender, 0, 100 ether, 10, 100);
+		underTest.addEntityVestingWithConfig(
+			msg.sender,
+			0,
+			100 ether,
+			block.timestamp + 10,
+			block.timestamp + 100
+		);
 	}
 
 	function test_addEntityVesting_asUser_ThenRevertsNoPermission()

@@ -5,8 +5,5 @@
   "VestingVesta": {
     "address": "0xefD767F55534b09617150434d9e35BFf4b1C96B0",
     "proxyAdmin": "0xcFc8799d61f0e9cb6D71B15941c459809280c24e"
-  },
-  "VestingVesta-V2": {
-    "address": "0x0b438feeb14E1de8AA3c6AaB2A1dAf3F072F6615"
   }
 }

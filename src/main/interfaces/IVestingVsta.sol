@@ -11,8 +11,9 @@ interface IVestingVsta {
 		address _entity,
 		uint256 _vestingType,
 		uint256 _totalSupply,
-		uint256 _lockClaiming,
-		uint256 _vestingDuration
+		uint256 _initialDateTimestamp,
+		uint256 _lockClaimingInSeconds,
+		uint256 _vestingDurationInSeconds
 	) external;
 
 	function lowerEntityVesting(
@@ -55,3 +56,4 @@ interface IVestingVsta {
 		view
 		returns (bool);
 }
+

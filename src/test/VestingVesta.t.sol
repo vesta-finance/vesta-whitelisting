@@ -102,8 +102,9 @@ contract VestingVestaTest is BaseTest {
 			msg.sender,
 			0,
 			100 ether,
-			block.timestamp + 10,
-			block.timestamp + 100
+			block.timestamp,
+			10,
+			100
 		);
 	}
 
@@ -116,8 +117,9 @@ contract VestingVestaTest is BaseTest {
 			msg.sender,
 			0,
 			100 ether,
-			block.timestamp + 1000,
-			block.timestamp + 100
+			block.timestamp,
+			1000,
+			100
 		);
 	}
 
@@ -147,8 +149,9 @@ contract VestingVestaTest is BaseTest {
 			msg.sender,
 			0,
 			100 ether,
-			block.timestamp + 10,
-			block.timestamp + 100
+			block.timestamp,
+			10,
+			100
 		);
 		(
 			uint256 createdDate,
@@ -168,20 +171,6 @@ contract VestingVestaTest is BaseTest {
 		assertEq(vsta.balanceOf(address(underTest)), 100 ether);
 	}
 
-	function test_addEntityVestingWithConfig_asOwner_AddTimestampUnderCurrentOne_ThenReverts()
-		public
-		prankAs(owner)
-	{
-		vm.expectRevert(TIMESTAMP_LOWER_THAN_BLOCKTIME);
-		underTest.addEntityVestingWithConfig(
-			msg.sender,
-			0,
-			100 ether,
-			block.timestamp - 100,
-			block.timestamp - 10
-		);
-	}
-
 	function test_addEntityVestingWithConfig_asOwner_AddTwiceNewEntityWithSameType_ThenRevertsDuplicated()
 		public
 		prankAs(owner)
@@ -190,8 +179,9 @@ contract VestingVestaTest is BaseTest {
 			msg.sender,
 			0,
 			100 ether,
-			block.timestamp + 10,
-			block.timestamp + 100
+			block.timestamp,
+			10,
+			100
 		);
 
 		vm.expectRevert(DuplicatedVestingRule);
@@ -199,8 +189,9 @@ contract VestingVestaTest is BaseTest {
 			msg.sender,
 			0,
 			100 ether,
-			block.timestamp + 10,
-			block.timestamp + 100
+			block.timestamp,
+			10,
+			100
 		);
 	}
 
@@ -647,5 +638,36 @@ contract VestingVestaTest is BaseTest {
 		underTest.removeEntityVesting(owner, 0);
 
 		assertEq(underTest.assignedVSTATokens(), 0);
+	}
+
+	function test_fixVestingFor_asUser_thenReverts() public prankAs(users[0]) {
+		address[] memory rulesUser = new address[](0);
+
+		vm.expectRevert(NOT_OWNER);
+		underTest.fixVestingFor(rulesUser);
+	}
+
+	function test_fixVestingFor_asAdmin_thenFixCreatedDate()
+		public
+		prankAs(owner)
+	{
+		uint256 createdTime = block.timestamp + 5 days;
+
+		underTest.addEntityVestingWithConfig(
+			msg.sender,
+			0,
+			100 ether,
+			createdTime,
+			10,
+			100
+		);
+
+		address[] memory rulesUser = new address[](1);
+		rulesUser[0] = msg.sender;
+
+		underTest.fixVestingFor(rulesUser);
+
+		(uint256 createdDate, , , , ) = underTest.entitiesVesting(msg.sender, 0);
+		assertEq(createdDate, (createdTime + 10) - 26 weeks);
 	}
 }

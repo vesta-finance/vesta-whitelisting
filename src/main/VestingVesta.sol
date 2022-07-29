@@ -68,29 +68,34 @@ contract VestingVesta is OwnableUpgradeable, IVestingVsta {
 		admins[_wallet] = _status;
 	}
 
+	//We moved vesting entity from V1 to V2 which affect the distribution since the "createdDate" is too accurate.
+	function fixVestingFor(address[] calldata _users) external onlyOwner {
+		address[] memory cachedUsers = _users;
+
+		for (uint256 i = 0; i < cachedUsers.length; ++i) {
+			Rule storage rule = entitiesVesting[cachedUsers[i]][0];
+			rule.createdDate = rule.startVestingDate - SIX_MONTHS;
+		}
+	}
+
 	function addEntityVestingWithConfig(
 		address _entity,
 		uint256 _vestingType,
 		uint256 _totalSupply,
-		uint256 _lockClaimingTimestamp,
-		uint256 _vestingDurationTimestamp
+		uint256 _initialDateTimestamp,
+		uint256 _lockClaimingInSeconds,
+		uint256 _vestingDurationInSeconds
 	) external override isAdmin {
-		if (
-			_lockClaimingTimestamp <= block.timestamp ||
-			_vestingDurationTimestamp <= block.timestamp
-		) {
-			revert VestingTimestampLowerThanBlockTimestamp();
-		}
-
-		if (_lockClaimingTimestamp > _vestingDurationTimestamp)
+		if (_lockClaimingInSeconds > _vestingDurationInSeconds)
 			revert ClaimingLockHigherThanVestingLock();
 
 		_addEntityVesting(
 			_entity,
 			_vestingType,
 			_totalSupply,
-			_lockClaimingTimestamp,
-			_vestingDurationTimestamp
+			_initialDateTimestamp,
+			_lockClaimingInSeconds,
+			_vestingDurationInSeconds
 		);
 	}
 
@@ -103,8 +108,9 @@ contract VestingVesta is OwnableUpgradeable, IVestingVsta {
 			_entity,
 			_vestingType,
 			_totalSupply,
-			block.timestamp.add(SIX_MONTHS),
-			block.timestamp.add(TWO_YEARS)
+			block.timestamp,
+			SIX_MONTHS,
+			TWO_YEARS
 		);
 	}
 
@@ -112,8 +118,9 @@ contract VestingVesta is OwnableUpgradeable, IVestingVsta {
 		address _entity,
 		uint256 _vestingType,
 		uint256 _totalSupply,
-		uint256 _claimingLockTimestamp,
-		uint256 _vestingDurationTimestamp
+		uint256 _initialDateTimestamp,
+		uint256 _lockClaimingInSeconds,
+		uint256 _vestingDurationInSeconds
 	) internal {
 		if (address(0) == _entity) revert InvalidAddress();
 		if (isEntityExits(_entity, _vestingType)) revert DuplicatedVestingRule();
@@ -122,10 +129,10 @@ contract VestingVesta is OwnableUpgradeable, IVestingVsta {
 		assignedVSTATokens += _totalSupply;
 
 		entitiesVesting[_entity][_vestingType] = Rule(
-			block.timestamp,
+			_initialDateTimestamp,
 			_totalSupply,
-			_claimingLockTimestamp,
-			_vestingDurationTimestamp,
+			_initialDateTimestamp + _lockClaimingInSeconds,
+			_initialDateTimestamp + _vestingDurationInSeconds,
 			0
 		);
 

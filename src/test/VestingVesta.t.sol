@@ -139,6 +139,50 @@ contract VestingVestaTest is BaseTest {
 		underTest.addEntityVesting(msg.sender, 0, 0);
 	}
 
+	function test_addEntityVestingWithInitialDateOnly_asUser_thenReverts()
+		public
+		prankAs(users[0])
+	{
+		vm.expectRevert(NoPermission);
+		underTest.addEntityVestingWithInitialDateOnly(
+			msg.sender,
+			0,
+			100 ether,
+			block.timestamp
+		);
+	}
+
+	function test_addEntityVestingWithInitialDateOnly_asOwner_NewEntity_ThenSavesEntityRuleWithDefaultSettings()
+		public
+		prankAs(owner)
+	{
+		uint256 currentBalance = vsta.balanceOf(owner);
+
+		underTest.addEntityVestingWithInitialDateOnly(
+			msg.sender,
+			0,
+			100 ether,
+			block.timestamp
+		);
+
+		(
+			uint256 createdDate,
+			uint256 totalSupply,
+			uint256 startVesting,
+			uint256 endVestingDate,
+			uint256 claimed
+		) = underTest.entitiesVesting(msg.sender, 0);
+
+		assertEq(createdDate, block.timestamp);
+		assertEq(totalSupply, 100 ether);
+		assertEq(startVesting, block.timestamp + underTest.SIX_MONTHS());
+		assertEq(endVestingDate, block.timestamp + underTest.TWO_YEARS());
+		assertEq(claimed, 0);
+
+		assertLt(vsta.balanceOf(owner), currentBalance);
+		assertEq(vsta.balanceOf(address(underTest)), 100 ether);
+	}
+
 	function test_addEntityVestingWithConfig_asOwner_NewEntity_ThenSavesEntityRule()
 		public
 		prankAs(owner)
@@ -259,7 +303,7 @@ contract VestingVestaTest is BaseTest {
 		prankAs(users[0])
 	{
 		vm.expectRevert(NOT_OWNER);
-		underTest.lowerEntityVesting(msg.sender, 0, 5 ether);
+		underTest.lowerEntityVesting(msg.sender, 0, 5 ether, false);
 	}
 
 	function test_lowerEntityVesting_asOwner_NotFoundEntity_thenRevertsNotFoundEntity()
@@ -267,7 +311,7 @@ contract VestingVestaTest is BaseTest {
 		prankAs(owner)
 	{
 		vm.expectRevert(EntityNotFound);
-		underTest.lowerEntityVesting(msg.sender, 0, 5 ether);
+		underTest.lowerEntityVesting(msg.sender, 0, 5 ether, false);
 	}
 
 	function test_lowerEntityVesting_asOwner_validEntityLowerThenNewSupplyIsZero_thenRevertsSupplyCannotBeZero()
@@ -277,7 +321,7 @@ contract VestingVestaTest is BaseTest {
 		underTest.addEntityVesting(msg.sender, 0, 100 ether);
 
 		vm.expectRevert(SupplyCannotBeZero);
-		underTest.lowerEntityVesting(msg.sender, 0, 0 ether);
+		underTest.lowerEntityVesting(msg.sender, 0, 0 ether, false);
 	}
 
 	function test_lowerEntityVesting_asOwner_validEntityTimePassed_givesClaimableTokenAndLowerSupply()
@@ -288,10 +332,25 @@ contract VestingVestaTest is BaseTest {
 		vm.warp(block.timestamp + SIX_MONTHS + 1 weeks);
 
 		uint256 totalClaimable = underTest.getClaimableVSTA(msg.sender, 0);
-		underTest.lowerEntityVesting(msg.sender, 0, 50 ether);
+		underTest.lowerEntityVesting(msg.sender, 0, 50 ether, false);
 
 		assertGt(totalClaimable, 0);
 		assertEq(vsta.balanceOf(msg.sender), totalClaimable);
+		assertEq(underTest.getEntityVestingTotalSupply(msg.sender, 0), 50 ether);
+	}
+
+	function test_lowerEntityVesting_asOwner_validEntityTimePassed_dontGivesClaimableTokenAndLowerSupply()
+		public
+		prankAs(owner)
+	{
+		underTest.addEntityVesting(msg.sender, 0, 100 ether);
+		vm.warp(block.timestamp + SIX_MONTHS + 1 weeks);
+
+		uint256 totalClaimable = underTest.getClaimableVSTA(msg.sender, 0);
+		underTest.lowerEntityVesting(msg.sender, 0, 50 ether, true);
+
+		assertGt(totalClaimable, 0);
+		assertEq(vsta.balanceOf(msg.sender), 0);
 		assertEq(underTest.getEntityVestingTotalSupply(msg.sender, 0), 50 ether);
 	}
 
@@ -305,7 +364,7 @@ contract VestingVestaTest is BaseTest {
 		uint256 leftOver = 99 ether - underTest.getClaimableVSTA(msg.sender, 0);
 
 		vm.expectRevert(NewSupplyGoesToZero);
-		underTest.lowerEntityVesting(msg.sender, 0, leftOver);
+		underTest.lowerEntityVesting(msg.sender, 0, leftOver, false);
 	}
 
 	function test_lowerEntityVesting_asOwner_validEntityNewSupplyHigherThanTheCurrentOne_thenRevertsNewSupplyHigherCurrentOne()
@@ -315,7 +374,7 @@ contract VestingVestaTest is BaseTest {
 		underTest.addEntityVesting(msg.sender, 0, 100 ether);
 
 		vm.expectRevert(NewSupplyHigherOnReduceMethod);
-		underTest.lowerEntityVesting(msg.sender, 0, 101 ether);
+		underTest.lowerEntityVesting(msg.sender, 0, 101 ether, false);
 	}
 
 	function test_removeEntityVesting_asUser_thenRevertsNotOwner()
@@ -323,7 +382,7 @@ contract VestingVestaTest is BaseTest {
 		prankAs(users[0])
 	{
 		vm.expectRevert(NOT_OWNER);
-		underTest.removeEntityVesting(msg.sender, 0);
+		underTest.removeEntityVesting(msg.sender, 0, false);
 	}
 
 	function test_removeEntityVesting_asOwner_NotFoundEntity_thenRevertsNotFoundEntity()
@@ -331,7 +390,7 @@ contract VestingVestaTest is BaseTest {
 		prankAs(owner)
 	{
 		vm.expectRevert(EntityNotFound);
-		underTest.removeEntityVesting(msg.sender, 0);
+		underTest.removeEntityVesting(msg.sender, 0, false);
 	}
 
 	function test_removeEntityVesting_asOwner_ValidEntity_thenSendClaimableTokenAndDeleteEntity()
@@ -343,7 +402,7 @@ contract VestingVestaTest is BaseTest {
 
 		uint256 claimableTokens = underTest.getClaimableVSTA(msg.sender, 0);
 
-		underTest.removeEntityVesting(msg.sender, 0);
+		underTest.removeEntityVesting(msg.sender, 0, false);
 
 		(
 			uint256 createdDate,
@@ -361,6 +420,35 @@ contract VestingVestaTest is BaseTest {
 
 		assertGt(claimableTokens, 0);
 		assertEq(vsta.balanceOf(msg.sender), claimableTokens);
+	}
+
+	function test_removeEntityVesting_asOwner_ValidEntity_thenDontSendClaimableTokenAndDeleteEntity()
+		public
+		prankAs(owner)
+	{
+		underTest.addEntityVesting(msg.sender, 0, 100 ether);
+		vm.warp(block.timestamp + SIX_MONTHS * 2);
+
+		uint256 claimableTokens = underTest.getClaimableVSTA(msg.sender, 0);
+
+		underTest.removeEntityVesting(msg.sender, 0, true);
+
+		(
+			uint256 createdDate,
+			uint256 totalSupply,
+			uint256 startVesting,
+			uint256 endVestingDate,
+			uint256 claimed
+		) = underTest.entitiesVesting(msg.sender, 0);
+
+		assertEq(createdDate, 0);
+		assertEq(totalSupply, 0);
+		assertEq(startVesting, 0);
+		assertEq(endVestingDate, 0);
+		assertEq(claimed, 0);
+
+		assertGt(claimableTokens, 0);
+		assertEq(vsta.balanceOf(msg.sender), 0);
 	}
 
 	function test_addSupplyToEntityVesting_asUser_thenRevertsNotOwner()
@@ -445,7 +533,7 @@ contract VestingVestaTest is BaseTest {
 		underTest.addEntityVesting(users[1], 0, 100_000 ether);
 		underTest.addEntityVesting(users[2], 0, 100_000 ether);
 
-		underTest.removeEntityVesting(users[2], 0);
+		underTest.removeEntityVesting(users[2], 0, false);
 
 		uint256 beforeBalance = vsta.balanceOf(owner);
 
@@ -581,7 +669,7 @@ contract VestingVestaTest is BaseTest {
 		underTest.addEntityVesting(owner, 0, 1_000_000 ether);
 		vm.warp(block.timestamp + SIX_MONTHS);
 
-		underTest.lowerEntityVesting(owner, 0, 500_000 ether);
+		underTest.lowerEntityVesting(owner, 0, 500_000 ether, false);
 
 		assertEq(underTest.getUnassignVSTATokensAmount(), 500_000 ether);
 	}
@@ -595,7 +683,7 @@ contract VestingVestaTest is BaseTest {
 		underTest.claimVSTAToken(0);
 
 		uint256 leftOver = underTest.getEntityVestingLeft(owner, 0);
-		underTest.removeEntityVesting(owner, 0);
+		underTest.removeEntityVesting(owner, 0, false);
 
 		assertEq(underTest.getUnassignVSTATokensAmount(), leftOver);
 	}
@@ -635,39 +723,8 @@ contract VestingVestaTest is BaseTest {
 		prankAs(owner)
 	{
 		underTest.addEntityVesting(owner, 0, 100_000 ether);
-		underTest.removeEntityVesting(owner, 0);
+		underTest.removeEntityVesting(owner, 0, false);
 
 		assertEq(underTest.assignedVSTATokens(), 0);
-	}
-
-	function test_fixVestingFor_asUser_thenReverts() public prankAs(users[0]) {
-		address[] memory rulesUser = new address[](0);
-
-		vm.expectRevert(NOT_OWNER);
-		underTest.fixVestingFor(rulesUser);
-	}
-
-	function test_fixVestingFor_asAdmin_thenFixCreatedDate()
-		public
-		prankAs(owner)
-	{
-		uint256 createdTime = block.timestamp + 5 days;
-
-		underTest.addEntityVestingWithConfig(
-			msg.sender,
-			0,
-			100 ether,
-			createdTime,
-			10,
-			100
-		);
-
-		address[] memory rulesUser = new address[](1);
-		rulesUser[0] = msg.sender;
-
-		underTest.fixVestingFor(rulesUser);
-
-		(uint256 createdDate, , , , ) = underTest.entitiesVesting(msg.sender, 0);
-		assertEq(createdDate, (createdTime + 10) - 26 weeks);
 	}
 }

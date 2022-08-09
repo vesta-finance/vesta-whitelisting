@@ -68,14 +68,20 @@ contract VestingVesta is OwnableUpgradeable, IVestingVsta {
 		admins[_wallet] = _status;
 	}
 
-	//We moved vesting entity from V1 to V2 which affect the distribution since the "createdDate" is too accurate.
-	function fixVestingFor(address[] calldata _users) external onlyOwner {
-		address[] memory cachedUsers = _users;
-
-		for (uint256 i = 0; i < cachedUsers.length; ++i) {
-			Rule storage rule = entitiesVesting[cachedUsers[i]][0];
-			rule.createdDate = rule.startVestingDate - SIX_MONTHS;
-		}
+	function addEntityVestingWithInitialDateOnly(
+		address _entity,
+		uint256 _vestingType,
+		uint256 _totalSupply,
+		uint256 _initialDateTimestamp
+	) external override isAdmin {
+		_addEntityVesting(
+			_entity,
+			_vestingType,
+			_totalSupply,
+			_initialDateTimestamp,
+			SIX_MONTHS,
+			TWO_YEARS
+		);
 	}
 
 	function addEntityVestingWithConfig(
@@ -142,16 +148,21 @@ contract VestingVesta is OwnableUpgradeable, IVestingVsta {
 	function lowerEntityVesting(
 		address _entity,
 		uint256 _vestingType,
-		uint256 _newTotalSupply
+		uint256 _newTotalSupply,
+		bool _isAnError
 	) external override onlyOwner entityRuleExists(_entity, _vestingType) {
 		if (_newTotalSupply == 0) revert SupplyCannotBeZero();
 
-		sendVSTATokenToEntity(_entity, _vestingType);
+		if (!_isAnError) {
+			sendVSTATokenToEntity(_entity, _vestingType);
+		}
+
 		Rule storage vestingRule = entitiesVesting[_entity][_vestingType];
 
 		if (_newTotalSupply <= vestingRule.claimed) revert NewSupplyGoesToZero();
-		if (_newTotalSupply >= vestingRule.totalSupply)
+		if (_newTotalSupply >= vestingRule.totalSupply) {
 			revert NewSupplyHigherOnReduceMethod();
+		}
 
 		uint256 removedSupply = vestingRule.totalSupply.sub(_newTotalSupply);
 		assignedVSTATokens = assignedVSTATokens.sub(removedSupply);
@@ -172,13 +183,15 @@ contract VestingVesta is OwnableUpgradeable, IVestingVsta {
 		vstaToken.safeTransferFrom(msg.sender, address(this), _extraSupply);
 	}
 
-	function removeEntityVesting(address _entity, uint256 _vestingType)
-		external
-		override
-		onlyOwner
-		entityRuleExists(_entity, _vestingType)
-	{
-		sendVSTATokenToEntity(_entity, _vestingType);
+	function removeEntityVesting(
+		address _entity,
+		uint256 _vestingType,
+		bool _isAnError
+	) external override onlyOwner entityRuleExists(_entity, _vestingType) {
+		if (!_isAnError) {
+			sendVSTATokenToEntity(_entity, _vestingType);
+		}
+
 		Rule memory vestingRule = entitiesVesting[_entity][_vestingType];
 
 		assignedVSTATokens = assignedVSTATokens.sub(
@@ -231,11 +244,15 @@ contract VestingVesta is OwnableUpgradeable, IVestingVsta {
 		if (block.timestamp >= entityRule.endVestingDate) {
 			claimable = entityRule.totalSupply.sub(entityRule.claimed);
 		} else {
-			claimable = entityRule
-				.totalSupply
-				.div(TWO_YEARS)
-				.mul(block.timestamp.sub(entityRule.createdDate))
-				.sub(entityRule.claimed);
+			claimable =
+				(entityRule.totalSupply / TWO_YEARS) *
+				(block.timestamp.sub(entityRule.createdDate));
+
+			if (claimable < entityRule.claimed) {
+				claimable = 0;
+			} else {
+				claimable -= entityRule.claimed;
+			}
 		}
 
 		return claimable;

@@ -16,10 +16,18 @@ interface IVestingVsta {
 		uint256 _vestingDurationInSeconds
 	) external;
 
+	function addEntityVestingWithInitialDateOnly(
+		address _entity,
+		uint256 _vestingType,
+		uint256 _totalSupply,
+		uint256 _initialDateTimestamp
+	) external;
+
 	function lowerEntityVesting(
 		address _entity,
 		uint256 _vestingType,
-		uint256 _newTotalSupply
+		uint256 _newTotalSupply,
+		bool _isAnError
 	) external;
 
 	function addSupplyToEntityVesting(
@@ -28,7 +36,11 @@ interface IVestingVsta {
 		uint256 _extraSupply
 	) external;
 
-	function removeEntityVesting(address _entity, uint256 _vestingType) external;
+	function removeEntityVesting(
+		address _entity,
+		uint256 _vestingType,
+		bool _isAnError
+	) external;
 
 	function claimVSTAToken(uint256 _vestingType) external;
 

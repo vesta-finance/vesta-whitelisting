@@ -27,27 +27,20 @@ export class Deployer {
 
 		const [vsta, whitelisting, vesting] = await this.getContracts()
 
-		console.log(
-			await vesting.entitiesVesting(
-				"0x473fD837E0fFcc46CfFbf89B62aab6Fe65D4E992",
-				0
-			)
+		const allowance = await vsta.allowance(
+			this.deployerWallet.getAddress(),
+			whitelisting.address
 		)
 
-		// const allowance = await vsta.allowance(
-		// 	this.deployerWallet.getAddress(),
-		// 	whitelisting.address
-		// )
+		if (allowance == 0) {
+			await vsta.approve(whitelisting.address, ethers.constants.MaxUint256)
+		}
 
-		// if (allowance == 0) {
-		// 	await vsta.approve(whitelisting.address, ethers.constants.MaxUint256)
-		// }
+		await this.initWhitelisting(whitelisting, vesting)
+		console.log("Whitelisting Initalized")
 
-		// await this.initWhitelisting(whitelisting, vesting)
-		// console.log("Whitelisting Initalized")
-
-		// await this.initVesting(vesting, whitelisting)
-		// console.log("Vesting Initalized")
+		await this.initVesting(vesting, whitelisting)
+		console.log("Vesting Initalized")
 	}
 
 	async getContracts() {

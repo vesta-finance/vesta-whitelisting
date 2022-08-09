@@ -248,7 +248,7 @@ contract VestingVesta is OwnableUpgradeable, IVestingVsta {
 				(entityRule.totalSupply / TWO_YEARS) *
 				(block.timestamp.sub(entityRule.createdDate));
 
-			if (claimable < entityRule.claimed) {
+			if (claimable <= entityRule.claimed) {
 				claimable = 0;
 			} else {
 				claimable -= entityRule.claimed;
